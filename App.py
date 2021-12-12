@@ -4,6 +4,7 @@ from tkinter.scrolledtext import ScrolledText
 from tkinter import filedialog
 import win32com.client
 import pandas as pd
+import pyperclip
 
 
 # GUIを提供するクラス
@@ -41,11 +42,17 @@ class App:
         label_to_name = tk.Label(self.root, text="宛先名", font=("normal", 14, "bold"))
         label_to_name.place(x=350, y=20)
 
-        # 件名
+        # 件名(メールタイトル)
         label_title = tk.Label(self.root, text="件名", font=("normal", 14, "bold"))
-        label_title.place(x=20, y=self.OFFSET + 180)
+        label_title.place(x=20, y=self.OFFSET + 120)
         self.textbox_title = tk.Entry(width=45)
-        self.textbox_title.place(x=80, y=self.OFFSET + 185)
+        self.textbox_title.place(x=80, y=self.OFFSET + 125)
+
+        # コース
+        label_course = tk.Label(self.root,text="コース名",font=("normal",14,"bold"))
+        label_course.place(x=20,y=self.OFFSET+160)
+        self.textbox_course=tk.Entry(width = 70)
+        self.textbox_course.place(x=120,y=self.OFFSET+165)
 
         # 本文
         label_body = tk.Label(self.root, text="本文", font=("normal", 14, "bold"))
@@ -78,8 +85,7 @@ class App:
         self.button_send.place(x=200, y=600)
 
         # ペースト機能実装
-        # TODO: 後で実装するかも
-        # self.root.bind("<Control-v>",self.paste_string)
+        self.root.bind("<Control-v>",self.paste_string)
 
     # アプリ起動
     def mainloop(self):
@@ -109,11 +115,6 @@ class App:
         with open(filepath, encoding="utf-8") as f:
             str = f.readlines()
 
-        # file = open(filepath, encoding="utf-8")
-
-        # str = file.read()
-        # file.close()
-
         # 本文のテキストボックスに挿入
         i = 1
         for string in str:
@@ -122,10 +123,14 @@ class App:
             i += 1
 
     # クリップボードからペーストする
-    # TODO: いったん保留で
-    # def paste_string(self):
-    #     body = self.root.clipboard_get()
-    #     self.textbox_body.
+    def paste_string(self):
+        # フォーカスされている要素を取得
+        element = self.root.focus_get()
+
+        # それがテキストボックスならば、そこにペーストする
+        if isinstance(element,tk.Entry):
+            str = pyperclip.paste()
+            element.insert(tk.END,str)
 
 
 # メールに関する機能をまとめたクラス
