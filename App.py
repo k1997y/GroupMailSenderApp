@@ -5,6 +5,7 @@ from tkinter import filedialog
 import win32com.client
 import pandas as pd
 import pyperclip
+import re
 
 
 # GUIを提供するクラス
@@ -18,7 +19,7 @@ class App:
         mailer = Mailer()
 
         # ファイルマネージャーの初期化
-        filemanager=FileManager()
+        filemanager = FileManager()
         filemanager.initialize()
 
         self.root = tk.Tk()  # ウィンドウ作成
@@ -49,10 +50,17 @@ class App:
         self.textbox_title.place(x=80, y=self.OFFSET + 125)
 
         # コース
-        label_course = tk.Label(self.root,text="コース名",font=("normal",14,"bold"))
-        label_course.place(x=20,y=self.OFFSET+160)
-        self.textbox_course=tk.Entry(width = 70)
-        self.textbox_course.place(x=120,y=self.OFFSET+165)
+        label_course = tk.Label(self.root, text="コース名", font=("normal", 14, "bold"))
+        label_course.place(x=20, y=self.OFFSET + 160)
+        self.textbox_course = tk.Entry(width=70)
+        self.textbox_course.place(x=120, y=self.OFFSET + 165)
+
+        # コース確定ボタン
+        self.button_course = tk.Button(self.root,
+                                       text="確定",
+                                       width=10,
+                                       command=self.make_letter_body)
+        self.button_course.place(x=600, y=self.OFFSET + 165)
 
         # 本文
         label_body = tk.Label(self.root, text="本文", font=("normal", 14, "bold"))
@@ -80,12 +88,15 @@ class App:
         self.checkbutton_prechecked.place(x=100, y=560)
 
         # 送信ボタン
-        self.button_send = tk.Button(self.root, text="送信", height=5, width=10,
+        self.button_send = tk.Button(self.root,
+                                     text="送信",
+                                     height=5,
+                                     width=10,
                                      command=lambda: mailer.send_group_mail(self))
         self.button_send.place(x=200, y=600)
 
         # ペースト機能実装
-        self.root.bind("<Control-v>",self.paste_string)
+        self.root.bind("<Control-v>", self.paste_string)
 
     # アプリ起動
     def mainloop(self):
@@ -128,9 +139,31 @@ class App:
         element = self.root.focus_get()
 
         # それがテキストボックスならば、そこにペーストする
-        if isinstance(element,tk.Entry):
+        if isinstance(element, tk.Entry):
             str = pyperclip.paste()
-            element.insert(tk.END,str)
+            element.insert(tk.END, str)
+
+    # 定型文やコースなどをマージし本文を作る
+    def make_letter_body(self):
+        message = Message()
+
+        # コース詳細を見やすく整形する
+        message.format_course_description(self.textbox_course.get())
+        letter_body = message.course_description
+
+        # 挨拶文と署名を追加
+        letter_body.insert(0, message.GREETING)
+        letter_body.append(message.SIGNATURE)
+
+        # リストを1つの文字変数にまとめる
+        string = ""
+        for str in letter_body:
+            string += str+"\n"
+
+        # テキストボックスをクリアする
+        self.textbox_body.delete("1.0","end")
+        # 本文のテキストボックスに挿入
+        self.textbox_body.insert("1.0",string)
 
 
 # メールに関する機能をまとめたクラス
@@ -169,7 +202,6 @@ class Mailer:
             message = ""
             # 1行目に社名を追加
             message += (filemanager.company_list[i] + "\n")
-
 
             # 2行目に担当者1を追加
             # 担当者が存在しない場合はスルーする
@@ -245,7 +277,7 @@ class FileManager:
     # シングルトンを作成して返す
     def __new__(cls, *args, **kwargs):
         if cls.__singleton == None:
-            cls.__singleton = super(FileManager,cls).__new__(cls)
+            cls.__singleton = super(FileManager, cls).__new__(cls)
         return cls.__singleton
 
     def initialize(self):
@@ -254,7 +286,7 @@ class FileManager:
             return
 
         # 送信先リストのexcelファイルからデータフレームを作成
-        df = pd.read_excel(self.ADDRESS_LIST_PATH,sheet_name=0,header=0)
+        df = pd.read_excel(self.ADDRESS_LIST_PATH, sheet_name=0, header=0)
         # 行数の取得
         self.column_number = len(df)
 
@@ -271,24 +303,33 @@ class FileManager:
         # 初期化フラグをオンにする
         self.__is_initialized = True
 
-    # def __init__(self):
-    #     df = pd.read_excel(self.ADDRESS_LIST_PATH, sheet_name=0, header=0)
-    #
-    #     # 行数取得
-    #     self.column_number = len(df)
-    #
-    #     # アドレス、社名、担当者1, 担当者2のリストを作成
-    #     self.address_list = []
-    #     self.company_name_list = []
-    #     self.person1_list = []
-    #     self.person2_list = []
-    #
-    #     # アドレスのリストに値を追加
-    #     for address in df[self.ADDRESS_COL_NAME]:
-    #         self.address_list.append(address)
-    #     for company in df[self.COMPANY_COL_NAME]:
-    #         self.company_name_list.append(company)
-    #     for person1 in df[self.PERSON_1]:
-    #         self.person1_list.append(person1)
-    #     for person2 in df[self.PERSON_2]:
-    #         self.person2_list.append(person2)
+
+# メッセージに関するクラス
+class Message:
+    GREETING = "いつも大変お世話になっております。\nお手数ですが、下記案件のお見積をどうぞよろしくお願い致します。\n"
+    SIGNATURE = "~~~~~~~~~~~~~~~~~~~~~~~~~\n" \
+                "太平観光株式会社　北垣えり子\n" \
+                "〒178-0063　東京都練馬区東大泉 7-38-9\n" \
+                "TEL 03-3924-1911　FAX 03-3978-1451\n" \
+                "MAIL eriko@tabi.co.jp\n" \
+                "~~~~~~~~~~~~~~~~~~~~~~~~~"
+
+    # コース詳細(空白で区切ったリスト)
+    course_description = []
+
+    # 入力したコース詳細を見やすいように整形する
+    def format_course_description(self, course_string):
+        # 各項をリストで取得
+        split_course = course_string.split()
+
+        # バスの情報を1行にまとめる
+        bus_info = split_course[2] + "　" + split_course[3] + "台　" + split_course[4]
+
+        # 距離と運行時間を1行にまとめる
+        distance_info = "（"+split_course[6]+"　" + split_course[7]+"）"
+
+        # 新しく整形したリストを作成する
+        course = [split_course[0], split_course[1], bus_info, split_course[5], distance_info+"\n"]
+
+        # フィールドに代入
+        self.course_description = course
