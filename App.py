@@ -6,13 +6,13 @@ import win32com.client
 import pandas as pd
 import pyperclip
 import re
+from tkinter import ttk
 
 
 # GUIを提供するクラス
 class App:
     TITLE = "一斉送信アプリ"
     WINDOW_SIZE = "720x720"
-    OFFSET = 60
 
     def __init__(self):
         # Mailerのオブジェクト作成
@@ -22,60 +22,111 @@ class App:
         filemanager = FileManager()
         filemanager.initialize()
 
-        self.root = tk.Tk()  # ウィンドウ作成
+        # ウィンドウ作成
+        self.root = tk.Tk()
         self.root.geometry(self.WINDOW_SIZE)
 
         # タイトル設定
         self.root.title(self.TITLE)
 
-        # 宛先のテキストボックスのリスト
-        self.address_textbox_list = []
-        # 宛先名のテキストボックスのリスト
-        self.address_name_textbox_list = []
+        # TreeViewのFrame作成
+        # frame_tree_view = ttk.Frame(self.root, padding=150)
+        # frame.grid(row=0, column=0)
+        # frame_tree_view.pack(anchor=tk.W)
+        # frame_tree_view.place(x=30,y=30)
 
-        # 宛先メールアドレス
-        label_to = tk.Label(self.root, text="宛先", font=("normal", 14, "bold"))
-        label_to.place(x=20, y=20)
-        self.button_add_to = tk.Button(self.root, text="追加", command=self.add_address_textbox)
-        self.button_add_to.place(x=20, y=60)
+        # TreeViewの作成
+        # self.tree_view = ttk.Treeview(frame_tree_view)
+        self.tree_view = ttk.Treeview()
 
-        # 宛先名
-        label_to_name = tk.Label(self.root, text="宛先名", font=("normal", 14, "bold"))
-        label_to_name.place(x=350, y=20)
+        self.tree_view["columns"] = (0, 1)
+        self.tree_view["show"] = "headings"
+
+        self.tree_view.heading(0, text="メールアドレス")
+        self.tree_view.heading(1, text="社名")
+
+        # レコードの追加
+        for i in range(filemanager.column_number):
+            self.tree_view.insert(parent="", index="end",
+                                  values=(filemanager.address_list[i], filemanager.company_list[i]))
+
+        # TreeView配置
+        # self.tree_view.grid(column=1)
+        # self.tree_view.pack()
+        self.tree_view.place(x=90,y=20)
+
+        # 宛先選択チェックボックスの設定
+        # チェックボックスのFrame作成
+        # frame_checkbox = ttk.Frame(self.root)
+        # frame_checkbox.pack()
+
+        # チェックボックスの値のリスト
+        self.checkbox_value = []
+        # チェックボックスのリスト
+        self.checkbox = []
+
+        # チェックボックスを宛先の数だけ作る
+        for i in range(filemanager.column_number):
+            value = tk.BooleanVar()
+            self.checkbox_value.append(value)
+            check = tk.Checkbutton(self.root,
+                                   text="",
+                                   command=self.reflect_condition_to_table,
+                                   variable=self.checkbox_value[i])
+            self.checkbox.append(check)
+
+        for i in range(filemanager.column_number):
+            # self.checkbox[i].pack(anchor=tk.W)
+            offset = 19.5
+            self.checkbox[i].place(x=60,y=43+i*offset)
+
+        # # 宛先のテキストボックスのリスト
+        # self.address_textbox_list = []
+        # # 宛先名のテキストボックスのリスト
+        # self.address_name_textbox_list = []
+        #
+        # # 宛先メールアドレス
+        # label_to = tk.Label(self.root, text="宛先", font=("normal", 14, "bold"))
+        # label_to.place(x=20, y=20)
+        # self.button_add_to = tk.Button(self.root, text="追加", command=self.add_address_textbox)
+        # self.button_add_to.place(x=20, y=60)
+        #
+        # # 宛先名
+        # label_to_name = tk.Label(self.root, text="宛先名", font=("normal", 14, "bold"))
+        # label_to_name.place(x=350, y=20)
 
         # 件名(メールタイトル)
         label_title = tk.Label(self.root, text="件名", font=("normal", 14, "bold"))
-        label_title.place(x=20, y=self.OFFSET + 120)
-        self.textbox_title = tk.Entry(width=45)
-        self.textbox_title.place(x=80, y=self.OFFSET + 125)
+        label_title.place(x=20, y=270)
+        self.textbox_title = tk.Entry(width=70)
+        self.textbox_title.place(x=118, y=277)
 
         # コース
         label_course = tk.Label(self.root, text="コース名", font=("normal", 14, "bold"))
-        label_course.place(x=20, y=self.OFFSET + 160)
+        label_course.place(x=20, y=330)
         self.textbox_course = tk.Entry(width=70)
-        self.textbox_course.place(x=120, y=self.OFFSET + 165)
+        self.textbox_course.place(x=120, y=337)
 
         # コース確定ボタン
         self.button_course = tk.Button(self.root,
                                        text="確定",
                                        width=10,
                                        command=self.make_letter_body)
-        self.button_course.place(x=600, y=self.OFFSET + 165)
+        self.button_course.place(x=600, y=350)
 
         # 本文
         label_body = tk.Label(self.root, text="本文", font=("normal", 14, "bold"))
-        label_body.place(x=20, y=self.OFFSET + 230)
+        label_body.place(x=20, y=380)
         self.textbox_body = ScrolledText(self.root, font=("normal", 10), height=15, width=70)
         # self.textbox_body.insert("1.0", "{名前} 様")
-        self.textbox_body.place(x=20, y=self.OFFSET + 280)
-        # 本文にコピペできるようにする
-        # self.textbox_body.bind("<Control-v>",paste_string)
+        self.textbox_body.place(x=20, y=420)
+
         # 本文ファイルを取得するためのボタン設置
-        self.button_get_message_file = tk.Button(self.root,
-                                                 text="インポート",
-                                                 width=10,
-                                                 command=self.import_mail_body)
-        self.button_get_message_file.place(x=100, y=self.OFFSET + 230)
+        # self.button_get_message_file = tk.Button(self.root,
+        #                                          text="インポート",
+        #                                          width=10,
+        #                                          command=self.import_mail_body)
+        # self.button_get_message_file.place(x=100, y=350)
 
         # 送信前確認するかどうかのチェックボックス
         self.checkbutton_value = tk.BooleanVar()
@@ -85,15 +136,14 @@ class App:
                                                      variable=self.checkbutton_value,
                                                      onvalue=True,
                                                      offvalue=False)
-        self.checkbutton_prechecked.place(x=100, y=560)
+        self.checkbutton_prechecked.place(x=100, y=630)
 
         # 送信ボタン
         self.button_send = tk.Button(self.root,
                                      text="送信",
-                                     height=5,
                                      width=10,
                                      command=lambda: mailer.send_group_mail(self))
-        self.button_send.place(x=200, y=600)
+        self.button_send.place(x=200, y=670)
 
         # ペースト機能実装
         self.root.bind("<Control-v>", self.paste_string)
@@ -102,22 +152,9 @@ class App:
     def mainloop(self):
         self.root.mainloop()
 
-    # ボタンを押すと宛先を入力できるテキストボックスを増やす
-    # 同時に宛先名を入力するボックスも追加
-    def add_address_textbox(self):
-        # 宛先テキストボックス作成
-        textbox = tk.Entry(width=30)
-        textbox.place(x=80, y=self.OFFSET)
-        # 宛先名テキストボックス作成
-        textbox_name = tk.Entry(width=30)
-        textbox_name.place(x=350, y=self.OFFSET)
-
-        # 宛先テキストボックスのリストに追加
-        self.address_textbox_list.append(textbox)
-        # 宛先名テキストボックスのリストに追加
-        self.address_name_textbox_list.append(textbox_name)
-
-        self.OFFSET += 30
+    # 宛先チェックボックスにTreeViewを対応させる
+    def reflect_condition_to_table(self):
+        
 
     # 本文をインポートする
     def import_mail_body(self):
@@ -158,12 +195,12 @@ class App:
         # リストを1つの文字変数にまとめる
         string = ""
         for str in letter_body:
-            string += str+"\n"
+            string += str + "\n"
 
         # テキストボックスをクリアする
-        self.textbox_body.delete("1.0","end")
+        self.textbox_body.delete("1.0", "end")
         # 本文のテキストボックスに挿入
-        self.textbox_body.insert("1.0",string)
+        self.textbox_body.insert("1.0", string)
 
 
 # メールに関する機能をまとめたクラス
@@ -326,10 +363,10 @@ class Message:
         bus_info = split_course[2] + "　" + split_course[3] + "台　" + split_course[4]
 
         # 距離と運行時間を1行にまとめる
-        distance_info = "（"+split_course[6]+"　" + split_course[7]+"）"
+        distance_info = "（" + split_course[6] + "　" + split_course[7] + "）"
 
         # 新しく整形したリストを作成する
-        course = [split_course[0], split_course[1], bus_info, split_course[5], distance_info+"\n"]
+        course = [split_course[0], split_course[1], bus_info, split_course[5], distance_info + "\n"]
 
         # フィールドに代入
         self.course_description = course
