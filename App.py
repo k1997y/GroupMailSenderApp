@@ -7,6 +7,7 @@ import pandas as pd
 import pyperclip
 import re
 from tkinter import ttk
+from ttkwidgets import CheckboxTreeview
 
 
 # GUIを提供するクラス
@@ -37,23 +38,23 @@ class App:
 
         # TreeViewの作成
         # self.tree_view = ttk.Treeview(frame_tree_view)
-        self.tree_view = ttk.Treeview()
-
-        self.tree_view["columns"] = (0, 1)
-        self.tree_view["show"] = "headings"
-
-        self.tree_view.heading(0, text="メールアドレス")
-        self.tree_view.heading(1, text="社名")
+        # self.tree_view = ttk.Treeview()
+        #
+        # self.tree_view["columns"] = (0, 1)
+        # self.tree_view["show"] = "headings"
+        #
+        # self.tree_view.heading(0, text="メールアドレス")
+        # self.tree_view.heading(1, text="社名")
 
         # レコードの追加
-        for i in range(filemanager.column_number):
-            self.tree_view.insert(parent="", index="end",
-                                  values=(filemanager.address_list[i], filemanager.company_list[i]))
+        # for i in range(filemanager.column_number):
+        #     self.tree_view.insert(parent="", index="end",
+        #                           values=(filemanager.address_list[i], filemanager.company_list[i]))
 
         # TreeView配置
         # self.tree_view.grid(column=1)
         # self.tree_view.pack()
-        self.tree_view.place(x=90,y=20)
+        # self.tree_view.place(x=90,y=20)
 
         # 宛先選択チェックボックスの設定
         # チェックボックスのFrame作成
@@ -61,24 +62,46 @@ class App:
         # frame_checkbox.pack()
 
         # チェックボックスの値のリスト
-        self.checkbox_value = []
+        # self.checkbox_value = []
         # チェックボックスのリスト
-        self.checkbox = []
+        # self.checkbox = []
 
         # チェックボックスを宛先の数だけ作る
-        for i in range(filemanager.column_number):
-            value = tk.BooleanVar()
-            self.checkbox_value.append(value)
-            check = tk.Checkbutton(self.root,
-                                   text="",
-                                   command=self.reflect_condition_to_table,
-                                   variable=self.checkbox_value[i])
-            self.checkbox.append(check)
+        # for i in range(filemanager.column_number):
+        #     value = tk.BooleanVar()
+        #     self.checkbox_value.append(value)
+        #     check = tk.Checkbutton(self.root,
+        #                            text="",
+        #                            command=self.reflect_condition_to_table,
+        #                            variable=self.checkbox_value[i])
+        #     self.checkbox.append(check)
+        #
+        # for i in range(filemanager.column_number):
+        #     # self.checkbox[i].pack(anchor=tk.W)
+        #     offset = 19.5
+        #     self.checkbox[i].place(x=60,y=43+i*offset)
+
+        # チェックボックスツリービューの作成
+        self.tree = CheckboxTreeview(self.root)
+        # self.tree.column("#0",minwidth= 100,width=200)
+        self.tree.place(x=20, y=20)
+
+        # for i in range(filemanager.column_number):
+        #     self.tree.insert(parent="",
+        #                      index="end",
+        #                      text=(filemanager.address_list[i] + "\t" + filemanager.company_list[i]))
 
         for i in range(filemanager.column_number):
-            # self.checkbox[i].pack(anchor=tk.W)
-            offset = 19.5
-            self.checkbox[i].place(x=60,y=43+i*offset)
+            self.tree.insert(parent="",
+                             index="end",
+                             iid=str(i),
+                             text=filemanager.address_list[i])
+
+        # 社名の表示
+        for i in range(filemanager.column_number):
+            label = tk.Label(self.root,
+                             text=filemanager.company_list[i])
+            label.place(x=230,y=44+20*i)
 
         # # 宛先のテキストボックスのリスト
         # self.address_textbox_list = []
@@ -151,10 +174,6 @@ class App:
     # アプリ起動
     def mainloop(self):
         self.root.mainloop()
-
-    # 宛先チェックボックスにTreeViewを対応させる
-    def reflect_condition_to_table(self):
-        
 
     # 本文をインポートする
     def import_mail_body(self):
@@ -234,11 +253,34 @@ class Mailer:
         filemanager = FileManager()
         filemanager.initialize()
 
+        to = app.tree.get_checked()
+
         # 本文を送信先ごとに書き換える
-        for i in range(filemanager.column_number):
-            message = ""
+        # for i in range(filemanager.column_number):
+        #     message = ""
+        #     # 1行目に社名を追加
+        #     message += (filemanager.company_list[i] + "\n")
+        #
+        #     # 2行目に担当者1を追加
+        #     # 担当者が存在しない場合はスルーする
+        #     if not pd.isna(filemanager.person1_list[i]):
+        #         message += filemanager.person1_list[i]
+        #
+        #     # 担当者が2人いれば追加する
+        #     if not pd.isna(filemanager.person2_list[i]):
+        #         message += ", " + filemanager.person2_list[i]
+        #     # 「様」を付ける
+        #     message += " 様\n\n"
+        #
+        #     mail_body = message + mail_body
+
+        for i in to:
+            i = int(i)
+            message =""
+            body= ""
+
             # 1行目に社名を追加
-            message += (filemanager.company_list[i] + "\n")
+            message+=(filemanager.company_list[i]+"\n")
 
             # 2行目に担当者1を追加
             # 担当者が存在しない場合はスルーする
@@ -247,11 +289,11 @@ class Mailer:
 
             # 担当者が2人いれば追加する
             if not pd.isna(filemanager.person2_list[i]):
-                message += ", " + filemanager.person2_list[i]
+                message += " 様, " + filemanager.person2_list[i]
             # 「様」を付ける
             message += " 様\n\n"
 
-            mail_body = message + mail_body
+            body = message + mail_body
 
             self.send_mail(filemanager.address_list[i], subject, mail_body, is_prechecked)
 
