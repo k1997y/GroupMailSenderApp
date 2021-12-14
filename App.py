@@ -295,7 +295,7 @@ class Mailer:
 
             body = message + mail_body
 
-            self.send_mail(filemanager.address_list[i], subject, mail_body, is_prechecked)
+            self.send_mail(filemanager.address_list[i], subject, body, is_prechecked)
 
     # メールを送信する
     def send_mail(self,
