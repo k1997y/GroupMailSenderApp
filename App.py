@@ -8,12 +8,13 @@ import pyperclip
 import re
 from tkinter import ttk
 from ttkwidgets import CheckboxTreeview
+from tkinter import messagebox
 
 
 # GUIを提供するクラス
 class App:
     TITLE = "一斉送信アプリ"
-    WINDOW_SIZE = "720x720"
+    WINDOW_SIZE = "720x500"
 
     def __init__(self):
         # Mailerのオブジェクト作成
@@ -120,29 +121,32 @@ class App:
 
         # 件名(メールタイトル)
         label_title = tk.Label(self.root, text="件名", font=("normal", 14, "bold"))
-        label_title.place(x=20, y=270)
-        self.textbox_title = tk.Entry(width=70)
-        self.textbox_title.place(x=118, y=277)
+        label_title.place(x=350, y=20)
+        self.textbox_title = tk.Entry(width=40)
+        self.textbox_title.place(x=413, y=26)
+
+        # 件名テキストボックスにデフォルト値を設定
+        self.textbox_title.insert(0,"【お見積依頼】")
 
         # コース
-        label_course = tk.Label(self.root, text="コース名", font=("normal", 14, "bold"))
-        label_course.place(x=20, y=330)
-        self.textbox_course = tk.Entry(width=70)
-        self.textbox_course.place(x=120, y=337)
+        label_course = tk.Label(self.root, text="コース", font=("normal", 14, "bold"))
+        label_course.place(x=330, y=55)
+        self.textbox_course = tk.Entry(width=40)
+        self.textbox_course.place(x=413, y=62)
 
         # コース確定ボタン
         self.button_course = tk.Button(self.root,
                                        text="確定",
-                                       width=10,
+                                       width=7,
                                        command=self.make_letter_body)
-        self.button_course.place(x=600, y=350)
+        self.button_course.place(x=600, y=100)
 
         # 本文
         label_body = tk.Label(self.root, text="本文", font=("normal", 14, "bold"))
-        label_body.place(x=20, y=380)
-        self.textbox_body = ScrolledText(self.root, font=("normal", 10), height=15, width=70)
+        label_body.place(x=350, y=170)
+        self.textbox_body = ScrolledText(self.root, font=("normal", 10), height=15, width=52)
         # self.textbox_body.insert("1.0", "{名前} 様")
-        self.textbox_body.place(x=20, y=420)
+        self.textbox_body.place(x=320, y=220)
 
         # 本文ファイルを取得するためのボタン設置
         # self.button_get_message_file = tk.Button(self.root,
@@ -159,14 +163,14 @@ class App:
                                                      variable=self.checkbutton_value,
                                                      onvalue=True,
                                                      offvalue=False)
-        self.checkbutton_prechecked.place(x=100, y=630)
+        self.checkbutton_prechecked.place(x=340, y=440)
 
         # 送信ボタン
         self.button_send = tk.Button(self.root,
                                      text="送信",
                                      width=10,
                                      command=lambda: mailer.send_group_mail(self))
-        self.button_send.place(x=200, y=670)
+        self.button_send.place(x=570, y=440)
 
         # ペースト機能実装
         self.root.bind("<Control-v>", self.paste_string)
@@ -296,6 +300,9 @@ class Mailer:
             body = message + mail_body
 
             self.send_mail(filemanager.address_list[i], subject, body, is_prechecked)
+
+        # 送信後ダイアログを表示する
+        messagebox.showinfo("メール送信完了","メールの送信が完了しました")
 
     # メールを送信する
     def send_mail(self,
